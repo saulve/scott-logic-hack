@@ -1,9 +1,6 @@
 package game;
 
 import trading.TradingStrategy;
-import tradingstrategy.BaseTradingStrategy;
-import dataobjects.GameData;
-import dataobjects.GameOutput;
 import exceptions.GameFailureException;
 
 public class TestImplementation {
@@ -11,25 +8,10 @@ public class TestImplementation {
 
 	public static void main(String[] args) throws GameFailureException {
 
-		System.out.println("Profit breakdown:");
-		int totalFunds = 0;
+		// TODO Refactor. Reverse this such that TradingManager takes TradStrat interface
+		// That way we don't have to set initial_capital
+		Game game = new Game(new TradingStrategy(new TradingManager(INITIAL_CAPITAL, 0)));
+		game.run();
 
-		for (String company : GameDataResolver.COMPANIES) {
-			TradingManager tradingManager = new TradingManager(INITIAL_CAPITAL, 0);
-
-			BaseTradingStrategy strategy = new TradingStrategy(tradingManager);
-			GameData data = GameDataResolver.getInstance().getGameData(company);
-			Game game = new Game(strategy, data);
-
-			GameOutput output = game.getResult();
-
-			int profit = output.getTotalFunds() - INITIAL_CAPITAL;
-			System.out.println(company + ": £" + profit);
-			totalFunds += output.getTotalFunds();
-		}
-
-		int totalProfit = totalFunds - GameDataResolver.COMPANIES.size() * INITIAL_CAPITAL;
-		System.out.println("Total profit: £" + totalProfit);
-		System.out.println("Final funds: £" + totalFunds);
 	}
 }
