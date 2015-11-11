@@ -171,7 +171,7 @@ function buildPage() {
     // Build the header
     var overview = d3.select('.overview');
     var summary = overview.append('div').attr('class', 'header').text(teamName);
-    summary.append('span').attr('class', 'right').text(totalFunds);
+    summary.append('span').attr('class', 'right').text('£' + totalFunds);
     overview.append('hr');
 
     // Add each company
@@ -193,7 +193,7 @@ function buildPage() {
             .style('width', width + '%');
         comp.append('div')
             .attr('class', 'value')
-            .text(company.funds);
+            .text('£' + company.funds);
     });
 
     // Calculate chart dimensions
@@ -253,7 +253,7 @@ function buildPage() {
 function updateChart(index) {
     var company = companies[index];
     d3.select('.company-name').text(company.name);
-    d3.select('.company-value').text(company.funds);
+    d3.select('.company-value').text('£' + company.funds);
     d3.select('.chart-area').datum(company.data).transition().attr('d', area);
     d3.select('.chart-line').datum(company.data).transition().attr('d', line);
     d3.select('.candlestick').datum(company.data).call(cs);
