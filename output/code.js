@@ -2,8 +2,10 @@ var xScale = null,
     fundsScale = null,
     priceScale = null;
 
-var area = null,
-    line = null,
+var axis = null,
+    areaTotal = null,
+    lineTotal = null,
+    lineFunds = null,
     cs = null,
     ch = null;
 
@@ -96,11 +98,11 @@ var crosshairsComponent = function () {
                 if (nearest !== highlight) {
                     highlight = nearest;
                     var x = xScale(highlight.day);
-                    var y = fundsScale(highlight.funds);
+                    var y = fundsScale(highlight.fundsWithInvestments);
                     lineH.attr('y1', y).attr('y2', y);
                     lineV.attr('x1', x).attr('x2', x);
                     circle.attr('cx', x).attr('cy', y);
-                    calloutH.attr('y', y - 3).text(highlight.funds);
+                    calloutH.attr('y', y - 3).text(highlight.fundsWithInvestments);
                     calloutV.attr('x', x - 3).text(highlight.day);
                     root.attr('display', 'inherit');
                     setHighlightText(highlight);
@@ -171,7 +173,7 @@ function buildPage() {
     // Build the header
     var overview = d3.select('.overview');
     var summary = overview.append('div').attr('class', 'header').text(teamName);
-    summary.append('span').attr('class', 'right').text('£' + totalFunds);
+    summary.append('span').attr('class', 'right').text(formatAmount(totalFunds));
     overview.append('hr');
 
     // Add each company
@@ -193,20 +195,26 @@ function buildPage() {
             .style('width', width + '%');
         comp.append('div')
             .attr('class', 'value')
-            .text('£' + company.funds);
+            .text(formatAmount(company.funds));
     });
 
     // Calculate chart dimensions
-    var fullWidth = 900, fullHeight = 250;
+    var chartWidth = 900, fundsHeight = 250, priceHeight = 100;
     var margin = { left: 10, right: 10, top: 0, bottom: 20 };
-    var plotWidth = fullWidth - margin.left - margin.right;
-    var plotHeight = fullHeight - margin.top - margin.bottom;
+    var plotWidth = chartWidth - margin.left - margin.right;
+    var plotHeight = fundsHeight - margin.top - margin.bottom;
 
     // Set up scales
-    var extent = calculateExtent();
+    var extent = calculateExtent(0);
     xScale = d3.scale.linear().range([0, plotWidth]).domain([extent.minX, extent.maxX]);
-    fundsScale = d3.scale.linear().range([plotHeight, 0]).domain([extent.minFunds, extent.maxFunds]);
-    priceScale = d3.scale.linear().range([plotHeight, plotHeight * 0.4]).domain([extent.minPrice, extent.maxPrice]);
+    fundsScale = d3.scale.linear().range([plotHeight, 0]);
+    priceScale = d3.scale.linear().range([priceHeight, 0]);
+
+    // Set up placeholder data
+    var initialData = [];
+    for (var day = extent.minX; day <= extent.maxX; ++day) {
+        initialData.push({ day: day, open: 0, high: 0, low: 0, close: 0, funds: 0, fundsWithInvestments: 0 });
+    }
 
     // Build the header
     var details = d3.select('.details');
@@ -215,58 +223,68 @@ function buildPage() {
     header.append('span').attr('class', 'company-value right').text('0');
     header.append('hr');
 
-    // Build the chart
     var chart = details.append('div').attr('class', 'chart');
-    var svg = chart.append('svg').attr('width', fullWidth).attr('height', fullHeight);
-    var plot = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-    var xAxis = d3.svg.axis().scale(xScale).orient('bottom');
-    plot.append('g').attr('class', 'x axis').attr('transform', 'translate(0,' + plotHeight + ')').call(xAxis);
-    chart.append('div').attr('class', 'highlight');
 
-    // Set up placeholder data
-    var initialData = [];
-    for (var day = extent.minX; day <= extent.maxX; ++day) {
-        initialData.push({'day': day, 'funds': 0, 'open': 0, 'high': 0, 'low': 0, 'close': 0});
-    }
+    // Add candlestick chart
+    var svg_price = chart.append('svg').attr('width', chartWidth).attr('height', priceHeight);
+    var plot_price = svg_price.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+    cs = candlestickComponent();
+    plot_price.append('g').attr('class', 'candlestick').datum(initialData).call(cs);
 
-    // Add chart
-    area = d3.svg.area()
+    // Add funds chart
+    var svg_funds = chart.append('svg').attr('width', chartWidth).attr('height', fundsHeight);
+    var plot_funds = svg_funds.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+    areaTotal = d3.svg.area()
         .x(function(d) { return xScale(d.day); })
         .y0(plotHeight)
-        .y1(function(d) { return fundsScale(d.funds); });
-    line = d3.svg.line()
+        .y1(function(d) { return fundsScale(d.fundsWithInvestments); });
+    lineTotal = d3.svg.line()
+        .x(function(d) { return xScale(d.day); })
+        .y(function(d) { return fundsScale(d.fundsWithInvestments); });
+    lineFunds = d3.svg.line()
         .x(function(d) { return xScale(d.day); })
         .y(function(d) { return fundsScale(d.funds); });
-    plot.append('path').datum(initialData).attr('class', 'chart-area').attr('d', area);
-    plot.append('path').datum(initialData).attr('class', 'chart-line').attr('d', line);
+    plot_funds.append('path').datum(initialData).attr('class', 'chart-area').attr('d', areaTotal);
+    plot_funds.append('path').datum(initialData).attr('class', 'chart-line total').attr('d', lineTotal);
+    plot_funds.append('path').datum(initialData).attr('class', 'chart-line funds').attr('d', lineFunds);
 
-    // Add candlesticks
-    cs = candlestickComponent();
-    plot.append('g').attr('class', 'candlestick').datum(initialData).call(cs);
+    // Add x-axis
+    axis = d3.svg.axis().scale(xScale).orient('bottom');
+    plot_funds.append('g').attr('class', 'x-axis').attr('transform', 'translate(0,' + plotHeight + ')').call(axis);
+
+    // Add highlight text
+    chart.append('div').attr('class', 'highlight');
 
     // Add crosshairs
-    ch = crosshairsComponent().target(plot).series(initialData);
+    ch = crosshairsComponent().target(plot_funds).series(initialData);
     var overlay = d3.svg.area().x(function (d) { return xScale(d.day); }).y0(0).y1(plotHeight);
-    plot.append('path').attr('class', 'overlay').attr('d', overlay(initialData)).call(ch);
+    plot_funds.append('path').attr('class', 'overlay').attr('d', overlay(initialData)).call(ch);
 }
 
 function updateChart(index) {
+    var extent = calculateExtent(index);
+    xScale.domain([extent.minX, extent.maxX]);
+    fundsScale.domain([extent.minFunds, extent.maxFunds]);
+    priceScale.domain([extent.minPrice, extent.maxPrice]);
     var company = companies[index];
     d3.select('.company-name').text(company.name);
-    d3.select('.company-value').text('£' + company.funds);
-    d3.select('.chart-area').datum(company.data).transition().attr('d', area);
-    d3.select('.chart-line').datum(company.data).transition().attr('d', line);
+    d3.select('.company-value').text(formatAmount(company.funds));
+    d3.select('.x-axis').call(axis);
+    d3.select('.chart-area').datum(company.data).transition().attr('d', areaTotal);
+    d3.select('.chart-line.total').datum(company.data).transition().attr('d', lineTotal);
+    d3.select('.chart-line.funds').datum(company.data).transition().attr('d', lineFunds);
     d3.select('.candlestick').datum(company.data).call(cs);
     ch.series(company.data).clear();
 }
 
-function calculateExtent() {
-    var minX = d3.min(companies, function(company) { return d3.min(company.data, function(d) { return d.day; }); });
-    var maxX = d3.max(companies, function(company) { return d3.max(company.data, function(d) { return d.day; }); });
-    var minFunds = d3.min(companies, function(company) { return d3.min(company.data, function(d) { return d.funds; }); });
-    var maxFunds = d3.max(companies, function(company) { return d3.max(company.data, function(d) { return d.funds; }); });
-    var minPrice = d3.min(companies, function(company) { return d3.min(company.data, function(d) { return d.low; }); });
-    var maxPrice = d3.max(companies, function(company) { return d3.max(company.data, function(d) { return d.high; }); });
+function calculateExtent(index) {
+    var company = companies[index];
+    var minX = d3.min(company.data, function(d) { return d.day; });
+    var maxX = d3.max(company.data, function(d) { return d.day; });
+    var minFunds = d3.min(company.data, function(d) { return d.fundsWithInvestments; });
+    var maxFunds = d3.max(company.data, function(d) { return d.fundsWithInvestments; });
+    var minPrice = d3.min(company.data, function(d) { return d.low; });
+    var maxPrice = d3.max(company.data, function(d) { return d.high; });
     return {
         minX: minX,
         maxX: maxX,
@@ -281,10 +299,18 @@ function setHighlightText(data) {
     if (data) {
         var day = 'day ' + data.day;
         var ohlc = 'open ' + data.open + ' high ' + data.high + ' low ' + data.low + ' close ' + data.close;
-        var funds = 'funds ' + data.funds;
-        d3.select('.highlight').text(day + ' | ' + ohlc + ' | ' + funds);
+        var funds = 'funds ' + formatAmount(data.funds);
+        var total = 'total ' + formatAmount(data.fundsWithInvestments);
+        d3.select('.highlight').text(day + ' | ' + ohlc + ' | ' + funds + ' | ' + total);
     } else {
         var highlightText = 'click to see price details';
         d3.select('.highlight').text(highlightText);
     }
+}
+
+function formatAmount(amount) {
+    var sign = amount < 0 ? '-' : '',
+        i = parseInt(Math.abs(+amount || 0)).toString(),
+        j = (j = i.length) > 3 ? j % 3 : 0;
+    return '£' + sign + (j ? i.substr(0, j) + ',' : '') + i.substr(j).replace(/(\d{3})(?=\d)/g, '$1,');
 }
