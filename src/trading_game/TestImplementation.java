@@ -1,7 +1,7 @@
-package game;
+package trading_game;
 
 import exceptions.GameFailureException;
-import trading.TradingStrategy;
+import game.Game;
 
 
 public class TestImplementation {

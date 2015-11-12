@@ -1,9 +1,9 @@
-package trading;
+package trading_game;
 
+import game.DailyInput;
 import game.DailyOutput;
 import game.TradingManager;
 import tradingstrategy.BaseTradingStrategy;
-import dataobjects.DailyInput;
 import exceptions.InsufficientFundsException;
 import exceptions.InsufficientSharesException;
 
