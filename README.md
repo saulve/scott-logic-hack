@@ -7,8 +7,9 @@ The code in this repository is the 'starter' project for the hack, where student
 
 Competing students need to:
 * Download source as a zip and extract.
-* Open [Eclipse](https://www.eclipse.org/downloads/packages/eclipse-ide-java-developers/lunasr1) and right-click the Package Explorer
-* Import -> General -> Existing Projects into Workspace
+* Open [Eclipse](http://www.eclipse.org/downloads/packages/eclipse-ide-java-developers/mars1) and right-click the Package Explorer.
+* Import -> General -> Existing Projects into Workspace.
 * Browse to unzipped project, select Hackathon. Click Finish.
 * Right click Hackathon/src/(default package)/TestImplementation -> Run As -> Java Application.
-* Fill in the Hackathon/src/trading/TradingStrategy to do trading
+* Fill in the Hackathon/src/trading/TradingStrategy to do trading.
+* Look at graphical version of the results in Hackathon/Output/hackathon.html.
