@@ -8,7 +8,7 @@ import exceptions.InsufficientFundsException;
 import exceptions.InsufficientSharesException;
 
 public class TradingStrategy extends BaseTradingStrategy {
-	
+	int counter = 0;
 	public TradingStrategy (){
 		// Initialise any variables needed.
 		
@@ -22,9 +22,13 @@ public class TradingStrategy extends BaseTradingStrategy {
 		DailyOutput output;
 		if (input.getDay() % 2 == 0) {
 			output = tradingManager.buyMaxNumberOfShares(input);
+			counter++;
+			
 		} else {
 			output = tradingManager.sellAllShares(input);
+			counter++;
 		}
+		System.out.println(counter);
 		
 		return output;
 	}
